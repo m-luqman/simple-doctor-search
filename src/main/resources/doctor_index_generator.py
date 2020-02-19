@@ -3,7 +3,6 @@ import random
 import json
 from datetime import date
 from _datetime import timedelta
-from email.policy import default
 
 doctor_index=[]
 today=date.today()
