@@ -1,10 +1,9 @@
 package com.example.demo.repository;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BiFunction;
+import java.util.Map.Entry;
 import java.util.function.Consumer;
 
 import org.apache.http.HttpHost;
@@ -13,19 +12,18 @@ import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestHighLevelClient;
-import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
-import org.elasticsearch.search.sort.FieldSortBuilder;
-import org.elasticsearch.search.sort.SortOrder;
 import org.springframework.stereotype.Repository;
 
-import com.example.demo.service.QueryDTO;
-import com.example.demo.service.SortDTO;
+import com.example.demo.service.QueryType;
 
 @Repository
 public class SearchRepository {
+	
+	private static final int FIRST=0;
+	private static final int SECOND=1;
 	
 	private static SearchResponse search(SearchSourceBuilder searchSourceBuilder,String index) throws IOException {
 		
@@ -46,34 +44,26 @@ public class SearchRepository {
 		}
 	}
 	
-	static SearchSourceBuilder customQueryBuilder(List<QueryDTO> dtos,SearchSourceBuilder searchSourceBuilder) {
+	static SearchSourceBuilder customQueryBuilder(Map<String,List<String>> filters,Map<String,QueryType> queryMap,SearchSourceBuilder searchSourceBuilder) {
 
-		Map<String,BiFunction<String,String,QueryBuilder>> mapper=new HashMap<>();        
-
-        mapper.put("termQuery", QueryBuilders::termQuery);
-        mapper.put("matchPhraseQuery",QueryBuilders::matchPhraseQuery);
-        
-        for (QueryDTO dto : dtos)
-        	searchSourceBuilder=searchSourceBuilder.query(mapper.get(dto.type).apply(dto.key, dto.value));
+        for (Entry <String,List<String>> entry : filters.entrySet())
+            switch(queryMap.get(entry.getKey())) {
+            	case TERM:
+            		searchSourceBuilder=searchSourceBuilder.query(QueryBuilders.termQuery(entry.getKey(), entry.getValue().get(FIRST)));
+            		break;
+            	case PHRASE:
+            		searchSourceBuilder=searchSourceBuilder.query(QueryBuilders.matchPhraseQuery(entry.getKey(), entry.getValue().get(FIRST)));
+            		break;
+            	case RANGE:
+            		searchSourceBuilder=searchSourceBuilder
+            		.query(QueryBuilders
+            				.rangeQuery(entry.getKey()).gte(entry.getValue().get(FIRST)).lte(entry.getValue().get(SECOND)));
+            		break;
+            }
         
         return searchSourceBuilder;
 	}
-	
-	static SearchSourceBuilder customSortBuilder(List<SortDTO> dtos, SortDTO tieBreaker,SearchSourceBuilder searchSourceBuilder) {
-        
-		Map<String,SortOrder> mapper=new HashMap<>();        
-
-        mapper.put("ascending", SortOrder.ASC);
-        mapper.put("descending",SortOrder.DESC);
-
-        for (SortDTO dto : dtos)
-        	searchSourceBuilder=searchSourceBuilder.sort(new FieldSortBuilder(dto.key).order(mapper.get(dto.order)));
-
-        searchSourceBuilder=searchSourceBuilder.sort(new FieldSortBuilder(tieBreaker.key).order(mapper.get(tieBreaker.order)));
-
-        return searchSourceBuilder;
-	}
-	
+		
 	static SearchSourceBuilder baseBuilder(int limit,int offset) {
 		return new SearchSourceBuilder().from(offset).size(limit);
 	}
@@ -87,9 +77,8 @@ public class SearchRepository {
 		return result;
 	}
 	public static class SearchResultBuilder {
-	    public List<QueryDTO> queryDTOS;
-	    public List<SortDTO> sortDTOS;
-	    public SortDTO tieBreaker;
+	    public Map<String,QueryType> queryMap;
+	    public Map<String,List<String>> filters;
 	    public int limit;
 	    public int offset;
 	    public String index;
@@ -100,7 +89,7 @@ public class SearchRepository {
 	    }
 
 	    public String getSearchResult() throws IOException {
-			return getResultString(search(customSortBuilder(sortDTOS,tieBreaker,customQueryBuilder(queryDTOS,baseBuilder(limit,offset))),index));
+			return getResultString(search(customQueryBuilder(filters, queryMap,baseBuilder(limit,offset)),index));
 	    }
 	}	
 }

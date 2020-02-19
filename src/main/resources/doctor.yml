@@ -1,50 +1,7 @@
 
 #
 ---
-
 QUERY_MAP:
-  male:
-    type: termQuery
-    key: gender
-    value: male
-  female:
-    type: termQuery
-    key: gender
-    value: female
-  offline:
-    type: termQuery
-    key: online
-    value: false
-  online:
-    type: termQuery
-    key: online
-    value: true
-  always:
-    type: termQuery
-    key: availability
-    value: always
-  3_days:
-    type: matchPhraseQuery
-    key: availability
-    value: next 3 days
-  weekend:
-    type: matchPhraseQuery
-    key: availability
-    value: coming weekend
-
-SORT_MAP:
-  +price:
-    key: price
-    order: ascending
-  -price:
-    key: price
-    order: descending
-  experience:
-    key: experience_years
-    order: descending
-  rating:
-    key: ratings
-    order: descending
-  relevance:
-    key: relevance
-    order: descending
+  gender: TERM
+  online: TERM
+  availability: RANGE
