@@ -1,9 +1,10 @@
-package com.example.demo.controller;
+package com.example.demo.dto;
 import java.util.List;
 import java.util.Map;
 
 public class SearchRequestDTO{
 	Map<String,List<String>> filters;
+	String sortField,sortOrder;
 	int limit;
 	int offset;
 	public Map<String, List<String>> getFilters() {
@@ -23,5 +24,17 @@ public class SearchRequestDTO{
 	}
 	public void setOffset(int offset) {
 		this.offset = offset;
+	}
+	public String getSortField() {
+		return sortField;
+	}
+	public void setSortField(String sortField) {
+		this.sortField = sortField;
+	}
+	public String getSortOrder() {
+		return sortOrder;
+	}
+	public void setSortOrder(String sortOrder) {
+		this.sortOrder = sortOrder;
 	}
 }

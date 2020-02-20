@@ -1,0 +1,16 @@
+
+#
+---
+QUERY_MAP:
+  gender: TERM
+  online: TERM
+  availability: AVAILABILITY_RANGE
+
+SORT_FIELD_MAP:
+  relevance: FIELD
+  price: FIELD
+  experience: FIELD
+
+SORT_ORDER_MAP:
+  ascending: ASC
+  descending: DESC

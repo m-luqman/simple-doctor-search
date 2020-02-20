@@ -1,7 +1,0 @@
-
-#
----
-QUERY_MAP:
-  gender: TERM
-  online: TERM
-  availability: RANGE

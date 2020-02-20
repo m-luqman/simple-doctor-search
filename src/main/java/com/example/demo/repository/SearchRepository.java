@@ -13,11 +13,16 @@ import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.index.query.functionscore.ScoreFunctionBuilders;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.elasticsearch.search.sort.SortBuilders;
+import org.elasticsearch.search.sort.SortOrder;
 import org.springframework.stereotype.Repository;
 
-import com.example.demo.service.QueryType;
+import com.example.demo.constants.DoctorIndexConstants;
+import com.example.demo.constants.QueryType;
+import com.example.demo.constants.SortType;
+import com.example.demo.helper.DateHelper;
 
 @Repository
 public class SearchRepository {
@@ -44,40 +49,58 @@ public class SearchRepository {
 		}
 	}
 	
-	static SearchSourceBuilder customQueryBuilder(Map<String,List<String>> filters,Map<String,QueryType> queryMap,SearchSourceBuilder searchSourceBuilder) {
+	static SearchSourceBuilder customQueryBuilder(Map<String,List<String>> filters,Map<String,QueryType> queryMap,SearchSourceBuilder searchSourceBuilder) throws Throwable {
 
         for (Entry <String,List<String>> entry : filters.entrySet())
             switch(queryMap.get(entry.getKey())) {
-            	case TERM:
-            		searchSourceBuilder=searchSourceBuilder.query(QueryBuilders.termQuery(entry.getKey(), entry.getValue().get(FIRST)));
-            		break;
-            	case PHRASE:
-            		searchSourceBuilder=searchSourceBuilder.query(QueryBuilders.matchPhraseQuery(entry.getKey(), entry.getValue().get(FIRST)));
-            		break;
-            	case RANGE:
-            		searchSourceBuilder=searchSourceBuilder
-            		.query(QueryBuilders
-            				.rangeQuery(entry.getKey()).gte(entry.getValue().get(FIRST)).lte(entry.getValue().get(SECOND)));
-            		break;
+        	case TERM:
+        		searchSourceBuilder=searchSourceBuilder.query(QueryBuilders.termQuery(entry.getKey(), entry.getValue().get(FIRST)));
+        		break;
+        	case PHRASE:
+        		searchSourceBuilder=searchSourceBuilder.query(QueryBuilders.matchPhraseQuery(entry.getKey(), entry.getValue().get(FIRST)));
+        		break;
+        	case AVAILABILITY_RANGE:
+        		List<String> range=DateHelper.fromAvailability(entry.getValue().get(FIRST), 15);
+        		searchSourceBuilder=searchSourceBuilder
+        		.query(QueryBuilders.rangeQuery(entry.getKey()).gte(range.get(FIRST)).lte(range.get(SECOND)));
+        		break;
             }
         
         return searchSourceBuilder;
 	}
 		
-	static SearchSourceBuilder baseBuilder(int limit,int offset) {
-		return new SearchSourceBuilder().from(offset).size(limit);
-	}
-	static String getResultString(SearchResponse response) {
-		String result="";
-
-		for(SearchHit hit : response.getHits()) {
-			result=result+hit+"\n";
-		}
+	static SearchSourceBuilder customSortBuilder(String sortOrder,String sortField,Map<String,SortType> sortMap,Map<String,SortOrder> sortOrderMap,SearchSourceBuilder searchSourceBuilder) {
+		if(sortOrder==null || sortField==null)
+			return searchSourceBuilder;
 		
-		return result;
+		switch(sortMap.get(sortField)) {
+        case FIELD:
+        	searchSourceBuilder=searchSourceBuilder.sort(SortBuilders.fieldSort(sortField).order(sortOrderMap.get(sortOrder)));
+        	break;
+		case GEO:
+			break;
+		case SCORE:
+			break;
+		default:
+			break;
+        }
+        
+        return searchSourceBuilder;
 	}
+		
+	static SearchSourceBuilder baseBuilder(int limit,int offset) {
+		return new SearchSourceBuilder()
+					.from(offset)
+					.size(limit)
+					.query(QueryBuilders.functionScoreQuery(QueryBuilders.boolQuery().must(QueryBuilders.rangeQuery(DoctorIndexConstants.RATING).gte(4)),ScoreFunctionBuilders.scriptFunction("doc['relevance'].value+1 ")));
+	}
+
 	public static class SearchResultBuilder {
 	    public Map<String,QueryType> queryMap;
+	    public Map<String,SortType> sortMap;
+	    public Map<String,SortOrder> sortOrderMap;
+	    public String sortOrder;
+	    public String sortField;
 	    public Map<String,List<String>> filters;
 	    public int limit;
 	    public int offset;
@@ -88,8 +111,11 @@ public class SearchRepository {
 	        return this;
 	    }
 
-	    public String getSearchResult() throws IOException {
-			return getResultString(search(customQueryBuilder(filters, queryMap,baseBuilder(limit,offset)),index));
+	    public SearchResponse getSearchResult() throws Throwable {
+	    	SearchSourceBuilder searchSourceBuilder=baseBuilder(limit,offset);
+	    	searchSourceBuilder=customQueryBuilder(filters, queryMap, searchSourceBuilder);
+	    	searchSourceBuilder=customSortBuilder(sortOrder, sortField, sortMap, sortOrderMap, searchSourceBuilder);
+	    	return search(searchSourceBuilder,index);
 	    }
 	}	
 }
