@@ -10,6 +10,7 @@ SORT_FIELD_MAP:
   relevance: FIELD
   price: FIELD
   experience: FIELD
+  rating: FIELD
 
 SORT_ORDER_MAP:
   ascending: ASC

@@ -31,7 +31,7 @@ public class Mapper {
 	public static Mapper getDoctorMapper() throws JsonParseException, JsonMappingException, IOException {
 		ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
 		mapper.findAndRegisterModules();
-		return mapper.readValue(new File("src/main/java/com/example/demo/mapper/doctor.yml"), Mapper.class);		
+		return mapper.readValue(new File("src/main/resources/doctor.yml"), Mapper.class);		
 	}
 
 }

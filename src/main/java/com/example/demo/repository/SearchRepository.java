@@ -12,6 +12,7 @@ import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.index.query.functionscore.ScoreFunctionBuilders;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
@@ -19,7 +20,6 @@ import org.elasticsearch.search.sort.SortBuilders;
 import org.elasticsearch.search.sort.SortOrder;
 import org.springframework.stereotype.Repository;
 
-import com.example.demo.constants.DoctorIndexConstants;
 import com.example.demo.constants.QueryType;
 import com.example.demo.constants.SortType;
 import com.example.demo.helper.DateHelper;
@@ -50,22 +50,28 @@ public class SearchRepository {
 	}
 	
 	static SearchSourceBuilder customQueryBuilder(Map<String,List<String>> filters,Map<String,QueryType> queryMap,SearchSourceBuilder searchSourceBuilder) throws Throwable {
-
-        for (Entry <String,List<String>> entry : filters.entrySet())
-            switch(queryMap.get(entry.getKey())) {
-        	case TERM:
-        		searchSourceBuilder=searchSourceBuilder.query(QueryBuilders.termQuery(entry.getKey(), entry.getValue().get(FIRST)));
-        		break;
+		if(filters==null)
+			return searchSourceBuilder;
+		
+    	QueryBuilder queryBuilder=QueryBuilders.matchAllQuery();
+        
+    	for (Entry <String,List<String>> entry : filters.entrySet())
+        	
+    		switch(queryMap.get(entry.getKey())) {
+            case TERM:
+            	queryBuilder=QueryBuilders.termQuery(entry.getKey(), entry.getValue().get(FIRST));
+            	break;
         	case PHRASE:
-        		searchSourceBuilder=searchSourceBuilder.query(QueryBuilders.matchPhraseQuery(entry.getKey(), entry.getValue().get(FIRST)));
+        		queryBuilder=QueryBuilders.matchPhraseQuery(entry.getKey(), entry.getValue().get(FIRST));
         		break;
         	case AVAILABILITY_RANGE:
         		List<String> range=DateHelper.fromAvailability(entry.getValue().get(FIRST), 15);
-        		searchSourceBuilder=searchSourceBuilder
-        		.query(QueryBuilders.rangeQuery(entry.getKey()).gte(range.get(FIRST)).lte(range.get(SECOND)));
+        		queryBuilder=QueryBuilders.rangeQuery(entry.getKey()).gte(range.get(FIRST)).lte(range.get(SECOND));
         		break;
             }
-        
+    	String script="doc['rating'].value>=4? doc['relevance'].value+1 : doc['relevance'].value";
+		searchSourceBuilder=searchSourceBuilder.query(QueryBuilders.functionScoreQuery(queryBuilder,ScoreFunctionBuilders.scriptFunction(script)));
+
         return searchSourceBuilder;
 	}
 		
@@ -91,8 +97,7 @@ public class SearchRepository {
 	static SearchSourceBuilder baseBuilder(int limit,int offset) {
 		return new SearchSourceBuilder()
 					.from(offset)
-					.size(limit)
-					.query(QueryBuilders.functionScoreQuery(QueryBuilders.boolQuery().must(QueryBuilders.rangeQuery(DoctorIndexConstants.RATING).gte(4)),ScoreFunctionBuilders.scriptFunction("doc['relevance'].value+1 ")));
+					.size(limit);
 	}
 
 	public static class SearchResultBuilder {

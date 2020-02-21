@@ -4,9 +4,9 @@ import java.util.Map;
 
 public class SearchRequestDTO{
 	Map<String,List<String>> filters;
-	String sortField,sortOrder;
-	int limit;
-	int offset;
+	String sort_field,sort_order;
+	int limit=10;
+	int offset=0;
 	public Map<String, List<String>> getFilters() {
 		return filters;
 	}
@@ -26,15 +26,15 @@ public class SearchRequestDTO{
 		this.offset = offset;
 	}
 	public String getSortField() {
-		return sortField;
+		return sort_field;
 	}
 	public void setSortField(String sortField) {
-		this.sortField = sortField;
+		this.sort_field = sortField;
 	}
 	public String getSortOrder() {
-		return sortOrder;
+		return sort_order;
 	}
 	public void setSortOrder(String sortOrder) {
-		this.sortOrder = sortOrder;
+		this.sort_order = sortOrder;
 	}
 }

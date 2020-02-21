@@ -8,4 +8,5 @@ public class DoctorIndexConstants {
 	public static final String INDEX="doctor";
 	public static final String PRICE="price";
 	public static final String RATING="rating";
+	public static final String GENDER="gender";
 }

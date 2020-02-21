@@ -1,7 +1,5 @@
 package com.example.demo.service;
 
-import java.util.List;
-
 import org.springframework.stereotype.Service;
 
 import com.example.demo.dto.DoctorResultDTO;
@@ -13,7 +11,7 @@ import com.example.demo.repository.SearchRepository;
 public class SearchService {
 
 	
-	public List<DoctorResultDTO> getSearchResult(SearchRequestDTO searchSpecification,String indexName) throws Throwable {
+	public DoctorResultDTO getSearchResult(SearchRequestDTO searchSpecification,String indexName) throws Throwable {
     	
     	Mapper doctorMapper=Mapper.getDoctorMapper();
     	return DoctorResultDTO.getSearchResult(
